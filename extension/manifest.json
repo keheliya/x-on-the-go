@@ -1,10 +1,12 @@
 {
   "manifest_version": 3,
   "name": "X Article EPUB — Local",
-  "version": "1.0.0",
-  "description": "Preview and download an open X article as an EPUB. No account or delivery service.",
+  "version": "1.1.0",
+  "description": "Download X articles as EPUBs, individually or from your bookmarks. Local conversion with no delivery service.",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": ["https://pbs.twimg.com/*"],
+  "optional_host_permissions": ["https://x.com/*"],
+  "optional_permissions": ["downloads"],
   "action": {"default_title": "Download article as EPUB"},
   "background": {"service_worker": "background.js", "type": "module"},
   "content_security_policy": {"extension_pages": "script-src 'self'; object-src 'none'; connect-src https://pbs.twimg.com; img-src 'self' blob: data:; frame-src 'self'"}

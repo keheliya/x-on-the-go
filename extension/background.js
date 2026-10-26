@@ -1,4 +1,8 @@
 chrome.action.onClicked.addListener(async (tab) => {
+  if (/^https:\/\/x\.com\/i\/(?:bookmarks|history)\/?(?:[?#].*)?$/.test(tab.url || '')) {
+    await chrome.tabs.create({url: chrome.runtime.getURL('bookmarks.html')});
+    return;
+  }
   let article;
   try {
     if (!/^https:\/\/(www\.)?(x\.com|twitter\.com)\//.test(tab.url || '')) {
@@ -17,4 +21,17 @@ chrome.action.onClicked.addListener(async (tab) => {
   if (keys.length >= 10) await chrome.storage.session.remove(keys.slice(0, keys.length - 9));
   await chrome.storage.session.set({['article:' + id]: article});
   await chrome.tabs.create({url: chrome.runtime.getURL('editor.html') + '?id=' + id});
+});
+
+// Close only automation tabs created by a library page when that page closes.
+// Session storage survives service-worker suspension, but not browser restart.
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  const cached = await chrome.storage.session.get(null);
+  await chrome.storage.session.remove('worktab:' + tabId);
+  for (const [key, value] of Object.entries(cached)) {
+    if (key.startsWith('worktab:') && value.owner === tabId) {
+      await chrome.tabs.remove(Number(key.slice(8))).catch(() => {});
+      await chrome.storage.session.remove(key);
+    }
+  }
 });

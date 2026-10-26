@@ -1,6 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><title>Browser regression tests</title></head><body>
 <main id="fixture"></main><pre id="results">Running…</pre>
 <script type="module">
+import {scanBookmarkPage, inspectArticlePage} from '../extension/bookmarks-dom.js';
 const code = await (await fetch('../extension/extract.js')).text();
 const fixture = document.querySelector('#fixture');
 const results = [];
@@ -24,6 +25,58 @@ fixture.innerHTML = '<article data-testid="tweet"><p>A tweet, not an article</p>
 check('refuses ordinary tweets instead of exporting replies', !!eval(code).error);
 fixture.innerHTML = `<main><div class="DraftEditor-root"><div data-block="true">${'Draft editor fallback text. '.repeat(6)}</div></div></main>`;
 check('supports Draft editor fallback', eval(code).mode === 'Article');
+fixture.innerHTML = `<div data-testid="SideNav_AccountSwitcher_Button">Reader @reader</div><section data-testid="primaryColumn">
+<article data-testid="tweet"><div data-testid="User-Name"><a>Author One</a></div><a href="https://x.com/one/status/101"><time>Today</time></a><div data-testid="twitterArticlePreview"><h2>First saved article</h2><a href="https://x.com/i/article/901">Read article</a></div></article>
+<article data-testid="tweet"><a href="https://x.com/two/status/102"><time>Yesterday</time></a><div data-testid="tweetText">An ordinary bookmarked post</div></article>
+<article data-testid="tweet"><a href="https://x.com/three/status/103"><time>Yesterday</time></a><div data-testid="quoteTweet"><div data-testid="twitterArticlePreview">A quoted article</div><a href="https://x.com/i/article/903">Quoted article</a></div></article>
+<article data-testid="tweet"><a href="https://x.com/four/status/104"><time>Yesterday</time></a><div data-testid="article-cover-image"></div><div data-testid="twitter-article-title">Another article</div></article>
+</section>`;
+const bookmarks = scanBookmarkPage(new URL('https://x.com/i/bookmarks'));
+check('bookmark scanner reads account label', bookmarks.account === '@reader');
+check('bookmark scanner filters ordinary and quoted posts', bookmarks.items.length === 2);
+check('bookmark scanner preserves title and article target', bookmarks.items[0].title === 'First saved article' && bookmarks.items[0].articleUrl === 'https://x.com/i/article/901');
+check('bookmark scanner recognizes cover/title markers', bookmarks.items[1].title === 'Another article');
+const redirected = scanBookmarkPage(new URL('https://x.com/i/history'));
+check('history bookmark route returns the same articles and account', !redirected.error && redirected.account === bookmarks.account && JSON.stringify(redirected.items) === JSON.stringify(bookmarks.items));
+check('history bookmark route supports a trailing slash and query', scanBookmarkPage(new URL('https://x.com/i/history/?tab=bookmarks')).items?.length === 2);
+// Synthetic card layout with a plain bold div instead of a named title node.
+const savedFixture = fixture.innerHTML;
+fixture.innerHTML = `<section data-testid="primaryColumn"><article data-testid="tweet"><a href="https://x.com/example/status/105"><time>Today</time></a><div data-testid="tweetText">AI can now write the proof in minutes, but who checks what exactly was proven?</div><div role="link"><div data-testid="article-cover-image"></div><div dir="auto" style="font-weight:700"><span>The proof is in the spec</span></div><div dir="auto">A separate article summary.</div></div></article></section>`;
+const cardTitle = scanBookmarkPage(new URL('https://x.com/i/history')).items[0]?.title;
+check('plain bold article-card heading wins over post introduction', cardTitle === 'The proof is in the spec');
+fixture.querySelector('[style]').remove();
+check('missing heading never becomes the post introduction or summary', !scanBookmarkPage(new URL('https://x.com/i/history')).items[0]?.title);
+fixture.innerHTML = `<section data-testid="primaryColumn"><article data-testid="tweet"><a href="https://x.com/example/status/106"><time>Today</time></a><div data-testid="twitterArticlePreview"><h2>Only this title</h2><p>Do not append this summary.</p></div></article></section>`;
+check('article preview title excludes summary text', scanBookmarkPage(new URL('https://x.com/i/history')).items[0]?.title === 'Only this title');
+// Structure reported through Inspect Element: nested article > div > div > div > span.
+// No semantic heading, title test ID, clickable wrapper, or bold font is required.
+fixture.innerHTML = `<section data-testid="primaryColumn"><article data-testid="tweet"><div><div></div><div><a href="https://x.com/example/status/107"><time>Today</time></a><div data-testid="tweetText">The surrounding post introduction is not the title.</div></div><div><article><div data-testid="article-cover-image"><img alt="Cover" /></div><div class="changing-class"><div><div><span>The proof is in the spec</span></div><div><span>Summary text must stay separate.</span></div></div></div></article></div></div></article></section>`;
+check('nested article title span is detected without CSS classes or bold styling', scanBookmarkPage(new URL('https://x.com/i/history')).items[0]?.title === 'The proof is in the spec');
+fixture.querySelector('article article').parentElement.setAttribute('data-testid', 'quoteTweet');
+check('nested article in a quoted post is still excluded', scanBookmarkPage(new URL('https://x.com/i/history')).items.length === 0);
+// Reduced from the supplied bookmarks HTML: cover and text are sibling divs.
+// The title has no test ID, heading tag, link wrapper, or nested article.
+fixture.innerHTML = `<section data-testid="primaryColumn"><article data-testid="tweet"><div><div data-testid="User-Name"><a href="https://x.com/example">Example Author</a></div><a href="https://x.com/example/status/108"><time>Today</time></a><div data-testid="tweetText">An introduction that is not the article title.</div><div class="css-g5y9jx r-jxzhtn r-1q9bdsx r-rs99b7 r-1s2bzr4"><div data-testid="article-cover-image"><div aria-label="Article cover image"><img alt="Article cover image" /></div><div><div aria-label="Article" role="img"><span aria-hidden="true">Article</span></div></div></div><div class="css-g5y9jx r-xyw6el"><div class="css-g5y9jx r-1habvwh r-18u37iz"><div dir="auto" class="css-146c3p1 r-1vr29t4"><span>How the Claude Code team does code review </span></div></div><div dir="auto" style="-webkit-line-clamp:4"><span>This is the summary, not the title.</span></div></div></div><div role="group"><button>243 replies</button></div></div></article></section>`;
+let siblingCard = scanBookmarkPage(new URL('https://x.com/i/history')).items[0];
+check('supplied cover-sibling layout yields the exact title without summary', siblingCard?.title === 'How the Claude Code team does code review');
+check('supplied cover-sibling layout keeps the post URL and author', siblingCard?.url === 'https://x.com/example/status/108' && siblingCard?.author === 'Example Author');
+for (const node of fixture.querySelectorAll('[class]')) node.removeAttribute('class');
+check('cover-sibling title detection is independent of generated classes', scanBookmarkPage(new URL('https://x.com/i/history')).items[0]?.title === 'How the Claude Code team does code review');
+fixture.querySelector('[data-testid="article-cover-image"]').nextElementSibling.firstElementChild.remove();
+check('a missing sibling title never falls through to the summary', !scanBookmarkPage(new URL('https://x.com/i/history')).items[0]?.title);
+fixture.innerHTML = savedFixture;
+check('bookmark scanner refuses a non-bookmarks page', !!scanBookmarkPage(new URL('https://x.com/home')).error);
+const expansion = inspectArticlePage(new URL('https://x.com/one/status/101'));
+check('article loader follows focal article link', expansion.openURL === 'https://x.com/i/article/901');
+check('article loader does not follow a reply article', !inspectArticlePage(new URL('https://x.com/two/status/102')).openURL);
+fixture.innerHTML = '<section data-testid="primaryColumn"><div data-testid="emptyState">No bookmarks</div></section>';
+check('bookmark scanner handles empty state', scanBookmarkPage(new URL('https://x.com/i/bookmarks')).empty);
+fixture.innerHTML = '<input autocomplete="username">';
+check('bookmark scanner reports login requirement', /Sign in/.test(scanBookmarkPage(new URL('https://x.com/i/bookmarks')).error));
+fixture.innerHTML = '<a href="/login">Log in</a><section data-testid="primaryColumn"><div role="progressbar">Loading</div></section>';
+const hydrating = scanBookmarkPage(new URL('https://x.com/i/bookmarks'));
+check('transient login link does not abort a loading bookmarks page', !hydrating.error && !hydrating.ready);
+check('explicit login navigation reports sign-in rather than wrong page', /Sign in/.test(scanBookmarkPage(new URL('https://x.com/i/flow/login')).error));
 } catch (error) { results.push({error:error.message, passed:false}); }
 window.testResults = results;
 document.querySelector('#results').textContent = JSON.stringify(results, null, 2);

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bookmarked articles · x-on-the-go</title><link rel="stylesheet" href="editor.css"><link rel="stylesheet" href="bookmarks.css"></head>
+<body>
+<header><a class="brand" href="bookmarks.html">x-on-the-go</a><a href="editor.html">Single article</a><span class="badge">LOCAL EXPORT</span></header>
+<main class="library">
+  <section class="library-heading"><p class="eyebrow">YOUR BOOKMARKS, TO GO</p><h1>A reading list.<br>Ready to travel.</h1><p class="intro">Choose bookmarked X articles and download a separate EPUB for each one.</p></section>
+  <section class="scan-panel" aria-label="Load bookmarks">
+    <p>Use the account signed in to X in this Chrome profile. Loading opens a temporary X Bookmarks tab and scrolls through it. Keep this library tab open while it works.</p>
+    <div class="actions"><button id="load" class="primary">Load bookmarks</button><button id="more" class="secondary" disabled>Load more</button><button id="show-x" class="secondary" disabled>Show X tab</button><button id="stop" class="secondary" hidden>Stop</button></div>
+    <p id="account" class="hint">No account loaded</p>
+    <p id="progress" role="status" aria-live="polite">Only article bookmarks are listed. X loads bookmarks gradually; use Load more to scan older entries.</p>
+  </section>
+  <section class="bookmarks-panel" aria-label="Bookmarked articles">
+    <div class="selection-bar"><label class="check"><input type="checkbox" id="select-all" disabled>Select all listed</label><span id="selected">0 selected</span><label class="check"><input type="checkbox" id="images" checked>Include images</label></div>
+    <div id="empty"><span class="book">▤</span><h2>Bring your bookmarks along.</h2><p>Load your bookmarks to choose articles for your e-reader.</p></div>
+    <ul id="articles" aria-label="Articles"></ul>
+    <div class="download-bar"><p class="hint">Up to 20 articles per batch. Loading articles uses X; EPUB conversion stays local. Check the exported articles’ endings before sending them to Kindle.</p><button id="download" class="primary" disabled>Download selected EPUBs</button></div>
+  </section>
+  <p class="hint">Downloads go to Chrome’s download location. Failed articles stay selected for retry. No bookmarks are changed on X. Reloading this library clears its list.</p>
+</main>
+<footer>No delivery account. No analytics. Conversion stays in your browser.</footer>
+<script type="module" src="bookmarks.js"></script>
+</body></html>
