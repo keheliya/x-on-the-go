@@ -1,0 +1,30 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Browser regression tests</title></head><body>
+<main id="fixture"></main><pre id="results">Running…</pre>
+<script type="module">
+const code = await (await fetch('../extension/extract.js')).text();
+const fixture = document.querySelector('#fixture');
+const results = [];
+const check = (name, condition) => { results.push({name, passed: !!condition}); if (!condition) throw new Error(name); };
+try {
+fixture.innerHTML = `<div data-testid="twitterArticleReadView"><h1>An article &amp; its title</h1><div data-testid="User-Name"><a>Test Author</a></div><div data-testid="twitterArticleRichTextView"><h2>A heading</h2><p>${'A long paragraph with meaningful article content. '.repeat(6)}<strong>Bold</strong> <em>Italic</em></p><ul><li>First</li><li>Second</li></ul><a href="https://example.com/a?x=1&amp;y=2">Good link</a><a href="javascript:alert(1)">Bad link</a><img src="https://pbs.twimg.com/media/example.png" alt="A &amp; B"><button>Do not export</button><div hidden>Hidden text</div><script>bad code<\/script></div></div><article data-testid="tweet">Reply must not be exported</article>`;
+const result = eval(code);
+check('finds full article and title', result.title === 'An article & its title' && result.mode === 'Article');
+check('extracts author', result.author === 'Test Author');
+check('preserves formatting and lists', result.html.includes('<strong>Bold</strong>') && result.html.includes('<li>First</li>'));
+check('keeps safe links', result.html.includes('https://example.com/a?x=1&amp;y=2'));
+check('removes scripts, controls, hidden content and unsafe links', !/javascript:|bad code|Do not export|Hidden text/.test(result.html));
+check('excludes reply thread', !result.html.includes('Reply must not'));
+check('records images without embedding remote URLs', result.images.length === 1 && result.html.includes('data-image="0"') && !result.html.includes('https://pbs'));
+check('output is XML', !new DOMParser().parseFromString('<div>'+result.html+'</div>', 'application/xml').querySelector('parsererror'));
+const range = document.createRange(); range.selectNodeContents(fixture.querySelector('p')); window.getSelection().addRange(range);
+const selected = eval(code);
+check('selection overrides full article', selected.mode === 'Selected text' && !selected.html.includes('A heading'));
+window.getSelection().removeAllRanges();
+fixture.innerHTML = '<article data-testid="tweet"><p>A tweet, not an article</p></article>';
+check('refuses ordinary tweets instead of exporting replies', !!eval(code).error);
+fixture.innerHTML = `<main><div class="DraftEditor-root"><div data-block="true">${'Draft editor fallback text. '.repeat(6)}</div></div></main>`;
+check('supports Draft editor fallback', eval(code).mode === 'Article');
+} catch (error) { results.push({error:error.message, passed:false}); }
+window.testResults = results;
+document.querySelector('#results').textContent = JSON.stringify(results, null, 2);
+</script></body></html>

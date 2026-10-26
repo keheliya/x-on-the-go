@@ -1,0 +1,11 @@
+# Generated extension packages
+/dist/
+
+# Local browser tooling and dependencies
+/.gstack/
+/node_modules/
+
+# OS and Python artifacts
+.DS_Store
+__pycache__/
+*.py[cod]

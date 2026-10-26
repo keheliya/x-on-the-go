@@ -1,0 +1,6 @@
+{
+  "name": "x-article-epub-local",
+  "private": true,
+  "type": "module",
+  "scripts": {"test": "node --test tests/*.test.js", "package": "python3 scripts/package.py"}
+}

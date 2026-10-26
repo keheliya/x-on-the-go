@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Article → EPUB</title><link rel="stylesheet" href="editor.css"></head>
+<body>
+  <header><a class="brand" href="editor.html">Article <span>→</span> EPUB</a><span class="badge">LOCAL EXPORT</span></header>
+  <main>
+    <section class="controls">
+      <p class="eyebrow">YOUR READING, TO GO</p>
+      <h1>A longer read.<br>A quieter screen.</h1>
+      <p class="intro">Save an X article as an EPUB, then send it to your Kindle whenever you’re ready.</p>
+      <div id="notice" role="status" aria-live="polite"></div>
+      <label for="title">Article title</label><input id="title" maxlength="500" placeholder="Give your article a title">
+      <label for="author">Author</label><input id="author" maxlength="200" placeholder="Name or @handle">
+      <label for="source">Original article URL</label><input id="source" type="url" placeholder="https://x.com/…">
+      <label class="check"><input id="images" type="checkbox" checked> Include article images</label>
+      <p class="hint">Images are fetched directly from X’s image host when you download. Uncheck for a text-only export with no network requests.</p>
+      <details id="manual"><summary>Paste or replace article text</summary><label for="text">Plain text</label><textarea id="text" rows="9" placeholder="Paste the article here. Blank lines separate paragraphs."></textarea><button id="use-text" class="secondary">Use this text</button><p class="hint">Replacing the text removes its images and formatting.</p></details>
+      <button id="download" class="primary" disabled>Download EPUB <span>↓</span></button>
+      <p id="progress" role="status" aria-live="polite"></p>
+      <p class="hint">Next: upload your EPUB at <a href="https://www.amazon.com/sendtokindle" target="_blank" rel="noreferrer">Send to Kindle ↗</a>. This extension does not send it for you.</p>
+    </section>
+    <section class="reader" aria-label="Article preview">
+      <div class="reader-top"><span>READING PREVIEW</span><span id="count">No article loaded</span></div>
+      <div id="empty"><span class="book">▤</span><h2>Your article goes here.</h2><p>Open the full article on X and click the extension.<br>Or paste the article’s text to get started.</p></div>
+      <iframe id="preview" title="EPUB content preview" sandbox hidden></iframe>
+      <p class="preview-note">Check that the final paragraph is present. Images appear as placeholders here; available images are embedded on download.</p>
+    </section>
+  </main>
+  <footer>No delivery account. No analytics. Conversion stays in your browser.</footer>
+  <script type="module" src="editor.js"></script>
+</body></html>
